@@ -1,0 +1,25 @@
+# Use the Ubuntu 18.04 image as the base
+FROM ubuntu:18.04
+
+# Update package lists and install necessary packages
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y upgrade && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -q -y git openssh-server openjdk-11-jdk maven && \
+    apt-get clean
+
+# Configure SSH server and create necessary directories
+RUN sed -i 's|session    required     pam_loginuid.so|session    optional     pam_loginuid.so|g' /etc/pam.d/sshd && \
+    mkdir -p /var/run/sshd && \
+    useradd -m -d /home/jenkins -p $(openssl passwd -1 jenkins) jenkins && \
+    mkdir -p /home/jenkins/.m2 && \
+    mkdir -p /home/jenkins/.ssh
+
+# Change ownership of directories
+RUN chown -R jenkins:jenkins /home/jenkins/.m2/ && \
+    chown -R jenkins:jenkins /home/jenkins/.ssh/
+
+# Expose SSH port
+EXPOSE 22
+
+# Start SSH server
+CMD ["/usr/sbin/sshd", "-D"]
